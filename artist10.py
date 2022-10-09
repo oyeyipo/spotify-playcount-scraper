@@ -1,5 +1,8 @@
+import argparse
 import csv
+import os
 import random
+import sys
 import time
 from typing import List, Tuple
 
@@ -24,20 +27,22 @@ sam_smith = "https://open.spotify.com/artist/2wY79sveU1sp5g7SokKOiI"
 birdy = "https://open.spotify.com/artist/2WX2uTcsvV5OnS0inACecP"
 boy = "https://open.spotify.com/artist/1Cd373x8qzC7SNUg5IToqp"
 
-URL = sam_smith
+URL = sam_smith, birdy, boy
 MAX_WAIT = 10
 
 
 class ArtistPlayCount:
+    def __init__(self, url=random.choice(URL)):
+        self.url = url
+
     def fetch(self):
         self._browser_setup()
         self.finished = self._has_page_finished_loading(
             (By.XPATH, "//h2[text()[contains(., 'Popular')]]")
         )
-        clicked = self._click_expanding_button()
-        self._get_page_doc()
-        if not clicked:
-            self._check_for_popular_list()
+        self._click_expanding_button()
+        # self._get_page_doc()
+        self._check_for_popular_list()
         self._save_to_csv(data=self._parse_doc())
         self._browser_teardown()
 
@@ -60,31 +65,46 @@ class ArtistPlayCount:
             return False
 
     def _click_expanding_button(self):
-        # The artist page loads 5 top tracks items only but reveals more on clicking
-        # the 'SEE MORE' button. (volatile)
-        BUTTON_XPATH = "//div/text()[contains(., 'See')]/ancestor::button"  # or "//button[descendant::div]"
+        self.clicked = False
         start_time = time.time()
         while True:
-            elems = self.browser.find_elements(By.XPATH, BUTTON_XPATH)
-            if elems:
+            self._get_expanding_button()
+            if self.button:
                 try:
-                    # ActionChains(browser).move_to_element(elem[0]).click(elem[0])
-                    self.browser.execute_script("arguments[0].click();", elems[0])
+                    # ActionChains(browser).move_to_element(elem).click(elem)
+                    self.browser.execute_script("arguments[0].click();", self.button)
                 except ElementClickInterceptedException as e:
                     print("Couldn't click element")
                     raise e
                 else:
                     print("Expanding button found and clicked")
-                    return True
+                    self.clicked = True
+                    break
             else:
-                if time.time() - start_time > MAX_WAIT:
-                    return False
+                if time.time() - start_time > MAX_WAIT and self.clicked is False:
+                    break
                 self.random_wait_for(end=2)
 
+    def _get_expanding_button(self):
+        # The artist page loads 5 top tracks items only but reveals more on clicking
+        # the 'SEE MORE' button. (volatile)
+        BUTTON_XPATH = "//div/text()[contains(., 'See')]/ancestor::button"  # or "//button[descendant::div]"
+        self.button = self.browser.find_elements(By.XPATH, BUTTON_XPATH)[0]
+
     def _check_for_popular_list(self):
-        rows = self.soup.find_all(attrs={"aria-rowindex": True})
-        if not len(rows):
-            raise NoSuchElementException("NO track list found")
+        start = time.time()
+        while True:
+            self._get_page_doc()
+            rows = self.soup.find_all(attrs={"aria-rowindex": True})
+            if not self.clicked:
+                if not len(rows):
+                    raise NoSuchElementException("NO tracks list found")
+            elif time.time() - start > MAX_WAIT and len(rows) <= 5:
+                print("Items row couldn't be expanded")
+                break
+            elif len(rows) > 5:
+                break
+            time.sleep(0.5)
 
     def _get_page_doc(self):
         self.soup = None
@@ -94,7 +114,7 @@ class ArtistPlayCount:
     def _browser_setup(self):
         service_obj = ChromeService(ChromeDriverManager().install())
         self.browser = webdriver.Chrome(service=service_obj)
-        self.browser.get(URL)
+        self.browser.get(self.url)
         self.random_wait_for(end=2)
 
     def _browser_teardown(self):
@@ -139,4 +159,14 @@ class ArtistPlayCount:
 
 
 if __name__ == "__main__":
-    ArtistPlayCount().fetch()
+    parser = argparse.ArgumentParser(
+        prog="artist10", description="Fetches artist popular Spotify tracks"
+    )
+    parser.add_argument("Verbose", metavar="verbose", type=str, help="Run browser")
+
+    args = parser.parse_args()
+
+    verb = args.Verbose
+
+    print(verb)
+    # ArtistPlayCount().fetch()

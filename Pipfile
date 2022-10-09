@@ -3,8 +3,17 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
+[scripts]
+nlshell = 'scrapy shell "https://www.nairaland.com/"'
+sel = 'python artist_sel.py'
+
 [packages]
 scrapy = "*"
+scrapy-splash = "*"
+selenium = "*"
+webdriver-manager = "*"
+random-user-agent = "*"
+beautifulsoup4 = "*"
 
 [dev-packages]
 black = "*"

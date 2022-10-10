@@ -1,8 +1,6 @@
 import argparse
 import csv
-import os
 import random
-import sys
 import time
 from typing import List, Tuple
 
@@ -15,11 +13,15 @@ from selenium.common.exceptions import (
     TimeoutException,
     WebDriverException,
 )
+from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
+
+from random_user_agent.user_agent import UserAgent
+from random_user_agent.params import SoftwareName, OperatingSystem
 
 # from selenium.webdriver import ActionChains
 
@@ -32,8 +34,9 @@ MAX_WAIT = 10
 
 
 class ArtistPlayCount:
-    def __init__(self, url=random.choice(URL)):
+    def __init__(self, url=random.choice(URL), *, cmdargs):
         self.url = url
+        self.cmdargs = cmdargs
 
     def fetch(self):
         self._browser_setup()
@@ -104,7 +107,7 @@ class ArtistPlayCount:
                 break
             elif len(rows) > 5:
                 break
-            time.sleep(0.5)
+            self.random_wait_for(end=2)
 
     def _get_page_doc(self):
         self.soup = None
@@ -112,12 +115,35 @@ class ArtistPlayCount:
             self.soup = bsp(self.browser.page_source, "html.parser")
 
     def _browser_setup(self):
+        software_names = [SoftwareName.CHROME.value]
+        operating_systems = [
+            OperatingSystem.WINDOWS.value,
+            OperatingSystem.LINUX.value,
+            OperatingSystem.MACOS.value,
+        ]
+        user_agent_rotator = UserAgent(
+            software_names=software_names, operating_systems=operating_systems, limit=50
+        )
+        user_agent = user_agent_rotator.get_random_user_agent()
+
+        chrome_opt = ChromeOptions()
+        if not self.cmdargs.verbose:
+            print(user_agent)
+            chrome_opt.headless = True
+        chrome_opt.add_argument("--no-sandbox")
+        chrome_opt.add_argument("--window-size=1420,1080")
+        chrome_opt.add_argument("--disable-gpu")
+        chrome_opt.add_argument("--log-level=3")
+        # chrome_opt.add_argument(f"user-agent={user_agent}")
+
         service_obj = ChromeService(ChromeDriverManager().install())
-        self.browser = webdriver.Chrome(service=service_obj)
+        self.browser = webdriver.Chrome(service=service_obj, options=chrome_opt)
         self.browser.get(self.url)
+
         self.random_wait_for(end=2)
 
     def _browser_teardown(self):
+        self.random_wait_for()
         self.browser.quit()
 
     def _get_artist_name(self):
@@ -139,12 +165,9 @@ class ArtistPlayCount:
         result = []
         for table_item in self.soup.find_all(attrs={"aria-rowindex": True}):
             data = self._get_artist_track_data(table_item)
-
-            # DEBUG ---
-            position, track_name, playcount = data
-            print(position, self.artist_name, track_name, playcount)
-            # --- DEBUG
-
+            if self.cmdargs.verbose:
+                position, track_name, playcount = data
+                print(position, self.artist_name, track_name, playcount)
             result.append(data)
         return result
 
@@ -177,15 +200,10 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-o",
-        "--outputdir",
+        "--outputfile",
         action="store_true",
-        help="Output directory to save the file to",
+        help="Output file to save the data to. Default is the artist name in current directory",
     )
 
     args = parser.parse_args()
-
-    u, v = args.URL, args.verbose
-
-    print(u, type(u))
-    print(v, type(v))
-    ArtistPlayCount(url=args.URL).fetch()
+    ArtistPlayCount(url=args.URL, cmdargs=args).fetch()

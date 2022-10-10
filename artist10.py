@@ -37,6 +37,7 @@ class ArtistPlayCount:
     def __init__(self, url=random.choice(URL), *, cmdargs):
         self.url = url
         self.cmdargs = cmdargs
+        self.button = None
 
     def fetch(self):
         self._browser_setup()
@@ -84,7 +85,7 @@ class ArtistPlayCount:
                     self.clicked = True
                     break
             else:
-                if time.time() - start_time > MAX_WAIT and self.clicked is False:
+                if time.time() - start_time > MAX_WAIT:  #  and self.clicked is False
                     break
                 self.random_wait_for(end=2)
 
@@ -92,18 +93,22 @@ class ArtistPlayCount:
         # The artist page loads 5 top tracks items only but reveals more on clicking
         # the 'SEE MORE' button. (volatile)
         BUTTON_XPATH = "//div/text()[contains(., 'See')]/ancestor::button"  # or "//button[descendant::div]"
-        self.button = self.browser.find_elements(By.XPATH, BUTTON_XPATH)[0]
+        buttons = self.browser.find_elements(By.XPATH, BUTTON_XPATH)
+        if buttons:
+            self.button = buttons[0]
 
     def _check_for_popular_list(self):
         start = time.time()
         while True:
             self._get_page_doc()
             rows = self.soup.find_all(attrs={"aria-rowindex": True})
-            if not self.clicked:
-                if not len(rows):
-                    raise NoSuchElementException("NO tracks list found")
+            if not len(rows):
+                raise NoSuchElementException(
+                    "No Popular tracks list found for this artist"
+                )
             elif time.time() - start > MAX_WAIT and len(rows) <= 5:
-                print("Items row couldn't be expanded")
+                if self.cmdargs.verbose:
+                    print("Items row couldn't be expanded")
                 break
             elif len(rows) > 5:
                 break

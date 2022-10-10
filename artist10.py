@@ -160,13 +160,32 @@ class ArtistPlayCount:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        prog="artist10", description="Fetches artist popular Spotify tracks"
+        prog="artist10",
+        usage="%(prog)s [options] <artist url> [options]",
+        description="Fetches artist popular Spotify tracks",
+        epilog="Enjoy the program! :)",
+        allow_abbrev=False,
     )
-    parser.add_argument("Verbose", metavar="verbose", type=str, help="Run browser")
+    parser.add_argument(
+        "URL", metavar="url", type=str, help=f"the artist url e.g., {boy}"
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Show browser and print logs",
+    )
+    parser.add_argument(
+        "-o",
+        "--outputdir",
+        action="store_true",
+        help="Output directory to save the file to",
+    )
 
     args = parser.parse_args()
 
-    verb = args.Verbose
+    u, v = args.URL, args.verbose
 
-    print(verb)
-    # ArtistPlayCount().fetch()
+    print(u, type(u))
+    print(v, type(v))
+    ArtistPlayCount(url=args.URL).fetch()

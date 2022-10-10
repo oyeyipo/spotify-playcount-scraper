@@ -4,8 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [scripts]
-nlshell = 'scrapy shell "https://www.nairaland.com/"'
-sel = 'python artist_sel.py'
+sel = 'python artist10.py'
 
 [packages]
 scrapy = "*"

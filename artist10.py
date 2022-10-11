@@ -37,21 +37,22 @@ MAX_WAIT = 10
 class ArtistPlayCount:
     def __init__(self, cmdargs):
         self.cmdargs = cmdargs
-        self.url = self.cmdargs.URLs[0]
+        self.urls = self.cmdargs.URLs
 
         self.filename = None  # work on
         self.button = None
 
     def fetch(self):
-        self._browser_setup()
-        self.finished = self._has_page_finished_loading(
-            (By.XPATH, "//h2[text()[contains(., 'Popular')]]")
-        )
-        self._click_expanding_button()
-        # self._get_page_doc()
-        self._check_for_popular_list()
-        self._save_to_csv(data=self._parse_doc())
-        self._browser_teardown()
+        for url in self.urls:
+            self._browser_setup(url)
+            self.finished = self._has_page_finished_loading(
+                (By.XPATH, "//h2[text()[contains(., 'Popular')]]")
+            )
+            self._click_expanding_button()
+            # self._get_page_doc()
+            self._check_for_popular_list()
+            self._save_to_csv(data=self._parse_doc())
+            self._browser_teardown()
 
     @staticmethod
     def random_wait_for(start=1, end=3):
@@ -88,7 +89,8 @@ class ArtistPlayCount:
                     self.clicked = True
                     break
             else:
-                if time.time() - start_time > MAX_WAIT:  #  and self.clicked is False
+                #  and self.clicked is False
+                if time.time() - start_time > (MAX_WAIT / 2):
                     break
                 self.random_wait_for(end=2)
 
@@ -99,6 +101,8 @@ class ArtistPlayCount:
         buttons = self.browser.find_elements(By.XPATH, BUTTON_XPATH)
         if buttons:
             self.button = buttons[0]
+        else:
+            self.button = None
 
     def _check_for_popular_list(self):
         start = time.time()
@@ -122,7 +126,7 @@ class ArtistPlayCount:
         if self.finished:
             self.soup = bsp(self.browser.page_source, "html.parser")
 
-    def _browser_setup(self):
+    def _browser_setup(self, url):
         software_names = [SoftwareName.CHROME.value]
         operating_systems = [
             OperatingSystem.WINDOWS.value,
@@ -146,7 +150,7 @@ class ArtistPlayCount:
 
         service_obj = ChromeService(ChromeDriverManager().install())
         self.browser = webdriver.Chrome(service=service_obj, options=chrome_opt)
-        self.browser.get(self.url)
+        self.browser.get(url)
 
         self.random_wait_for(end=2)
 

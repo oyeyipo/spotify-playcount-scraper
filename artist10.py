@@ -28,15 +28,20 @@ from random_user_agent.params import SoftwareName, OperatingSystem
 sam_smith = "https://open.spotify.com/artist/2wY79sveU1sp5g7SokKOiI"
 birdy = "https://open.spotify.com/artist/2WX2uTcsvV5OnS0inACecP"
 boy = "https://open.spotify.com/artist/1Cd373x8qzC7SNUg5IToqp"
+soumond = "https://open.spotify.com/artist/7E3alOtvuTlLjGwjiZ88g6"
 
 URL = sam_smith, birdy, boy
 MAX_WAIT = 10
 
 
 class ArtistPlayCount:
-    def __init__(self, url=random.choice(URL), *, cmdargs):
-        self.url = url
+    def __init__(self, cmdargs):
         self.cmdargs = cmdargs
+        self.url = self.cmdargs.URL
+
+        print(type(self.url))
+
+        self.filename = None  # work on
         self.button = None
 
     def fetch(self):
@@ -127,7 +132,7 @@ class ArtistPlayCount:
             OperatingSystem.MACOS.value,
         ]
         user_agent_rotator = UserAgent(
-            software_names=software_names, operating_systems=operating_systems, limit=50
+            software_names=software_names, operating_systems=operating_systems, limit=5
         )
         user_agent = user_agent_rotator.get_random_user_agent()
 
@@ -189,13 +194,19 @@ class ArtistPlayCount:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         prog="artist10",
-        usage="%(prog)s [options] <artist url> [options]",
+        # usage="%(prog)s [options] <artist url> [options]",
         description="Fetches artist popular Spotify tracks",
         epilog="Enjoy the program! :)",
-        allow_abbrev=False,
+        # allow_abbrev=False,
     )
+
     parser.add_argument(
-        "URL", metavar="url", type=str, help=f"the artist url e.g., {boy}"
+        "URL",
+        metavar="url",
+        type=str,
+        nargs="?",
+        help=f"the artist url e.g., {boy}",
+        default=random.choice(URL),
     )
     parser.add_argument(
         "-v",
@@ -206,9 +217,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "-o",
         "--outputfile",
-        action="store_true",
         help="Output file to save the data to. Default is the artist name in current directory",
     )
-
     args = parser.parse_args()
-    ArtistPlayCount(url=args.URL, cmdargs=args).fetch()
+
+    ArtistPlayCount(cmdargs=args).fetch()

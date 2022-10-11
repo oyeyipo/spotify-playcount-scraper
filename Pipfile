@@ -4,11 +4,9 @@ verify_ssl = true
 name = "pypi"
 
 [scripts]
-sel = 'python artist10.py'
+artist = 'python artist10.py'
 
 [packages]
-scrapy = "*"
-scrapy-splash = "*"
 selenium = "*"
 webdriver-manager = "*"
 random-user-agent = "*"

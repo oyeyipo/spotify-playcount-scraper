@@ -37,9 +37,7 @@ MAX_WAIT = 10
 class ArtistPlayCount:
     def __init__(self, cmdargs):
         self.cmdargs = cmdargs
-        self.url = self.cmdargs.URL
-
-        print(type(self.url))
+        self.url = self.cmdargs.URLs[0]
 
         self.filename = None  # work on
         self.button = None
@@ -201,10 +199,10 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "URL",
-        metavar="url",
+        "URLs",
+        metavar="url(s)",
         type=str,
-        nargs="?",
+        nargs="*",
         help=f"the artist url e.g., {boy}",
         default=random.choice(URL),
     )
@@ -221,4 +219,5 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    print(args.URLs)
     ArtistPlayCount(cmdargs=args).fetch()

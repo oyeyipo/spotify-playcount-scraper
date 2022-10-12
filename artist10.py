@@ -21,8 +21,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
-from random_user_agent.user_agent import UserAgent
-from random_user_agent.params import SoftwareName, OperatingSystem
+from latest_user_agents import get_random_user_agent
 
 # from selenium.webdriver import ActionChains
 
@@ -136,16 +135,7 @@ class ArtistPlayCount:
             self.soup = bsp(self.browser.page_source, "html.parser")
 
     def _browser_setup(self, url):
-        software_names = [SoftwareName.CHROME.value]
-        operating_systems = [
-            OperatingSystem.WINDOWS.value,
-            OperatingSystem.LINUX.value,
-            OperatingSystem.MACOS.value,
-        ]
-        user_agent_rotator = UserAgent(
-            software_names=software_names, operating_systems=operating_systems, limit=5
-        )
-        user_agent = user_agent_rotator.get_random_user_agent()
+        user_agent = get_random_user_agent()
 
         chrome_opt = ChromeOptions()
         if not self.cmdargs.verbose:
@@ -155,7 +145,7 @@ class ArtistPlayCount:
         chrome_opt.add_argument("--window-size=1420,1080")
         chrome_opt.add_argument("--disable-gpu")
         chrome_opt.add_argument("--log-level=3")
-        # chrome_opt.add_argument(f"user-agent={user_agent}")
+        chrome_opt.add_argument(f"user-agent={user_agent}")
 
         service_obj = ChromeService(ChromeDriverManager().install())
         self.browser = webdriver.Chrome(service=service_obj, options=chrome_opt)
@@ -173,7 +163,6 @@ class ArtistPlayCount:
     def _get_artist_track_data(self, html: Tag) -> Tuple:
         track_row = html.find(attrs={"data-testid": "tracklist-row"})
 
-        # position = int(track_row.contents[0].span.string)
         track_name = str(track_row.contents[1].div.contents[0].string)
         playcount = str(track_row.contents[2].div.string).replace(",", "")
 
@@ -237,5 +226,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    print(args.URLs)
+    if args.verbose:
+        print(args.URLs)
     ArtistPlayCount(cmdargs=args).fetch()

@@ -9,8 +9,8 @@ artist = 'python artist10.py'
 [packages]
 selenium = "*"
 webdriver-manager = "*"
-random-user-agent = "*"
 beautifulsoup4 = "*"
+latest-user-agents = "*"
 
 [dev-packages]
 black = "*"

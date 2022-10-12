@@ -3,6 +3,7 @@ import csv
 import random
 import time
 from typing import List, Tuple
+from datetime import datetime
 
 from bs4 import BeautifulSoup as bsp
 from bs4.element import Tag
@@ -30,8 +31,9 @@ birdy = "https://open.spotify.com/artist/2WX2uTcsvV5OnS0inACecP"
 boy = "https://open.spotify.com/artist/1Cd373x8qzC7SNUg5IToqp"
 soumond = "https://open.spotify.com/artist/7E3alOtvuTlLjGwjiZ88g6"
 
-URL = sam_smith, birdy, boy
+URL = sam_smith, birdy, boy, soumond
 MAX_WAIT = 10
+TODAY = datetime.today().strftime("%Y-%m-%d")
 
 
 class ArtistPlayCount:
@@ -39,10 +41,11 @@ class ArtistPlayCount:
         self.cmdargs = cmdargs
         self.urls = self.cmdargs.URLs
 
-        self.filename = None  # work on
+        self.filename = self._get_filename()
         self.button = None
 
     def fetch(self):
+        self.first = True
         for url in self.urls:
             self._browser_setup(url)
             self.finished = self._has_page_finished_loading(
@@ -53,11 +56,17 @@ class ArtistPlayCount:
             self._check_for_popular_list()
             self._save_to_csv(data=self._parse_doc())
             self._browser_teardown()
+            self.first = False
 
     @staticmethod
     def random_wait_for(start=1, end=3):
         secs = random.randrange(start, end)
         time.sleep(secs)
+
+    def _get_filename(self):
+        if len(self.urls) > 1:
+            return f"{len(self.urls)}_artists_{TODAY}.csv"
+        return None
 
     def _has_page_finished_loading(self, locator: Tuple) -> bool:
         time_to_wait = MAX_WAIT
@@ -111,7 +120,7 @@ class ArtistPlayCount:
             rows = self.soup.find_all(attrs={"aria-rowindex": True})
             if not len(rows):
                 raise NoSuchElementException(
-                    "No Popular tracks list found for this artist"
+                    f"No Popular tracks list found for this {self.artist_name}"
                 )
             elif time.time() - start > MAX_WAIT and len(rows) <= 5:
                 if self.cmdargs.verbose:
@@ -164,11 +173,11 @@ class ArtistPlayCount:
     def _get_artist_track_data(self, html: Tag) -> Tuple:
         track_row = html.find(attrs={"data-testid": "tracklist-row"})
 
-        position = int(track_row.contents[0].span.string)
+        # position = int(track_row.contents[0].span.string)
         track_name = str(track_row.contents[1].div.contents[0].string)
-        playcount = str(track_row.contents[2].div.string)
+        playcount = str(track_row.contents[2].div.string).replace(",", "")
 
-        return position, track_name, playcount
+        return track_name, playcount
 
     def _parse_doc(self) -> List:
         self.artist_name = self._get_artist_name()
@@ -178,18 +187,22 @@ class ArtistPlayCount:
         for table_item in self.soup.find_all(attrs={"aria-rowindex": True}):
             data = self._get_artist_track_data(table_item)
             if self.cmdargs.verbose:
-                position, track_name, playcount = data
-                print(position, self.artist_name, track_name, playcount)
+                track_name, playcount = data
+                print(self.artist_name, track_name, playcount)
             result.append(data)
         return result
 
     def _save_to_csv(self, data):
-        with open(f"{self.artist_name}.csv", "w", newline="") as csvfile:
+        print(self.first)
+        filename = self.filename if self.filename else f"{self.artist_name}.csv"
+        mode = "w" if self.first else "a"
+        with open(filename, mode, newline="") as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow(["position", "artist name", "track title", "playcount"])
+            if self.first:
+                writer.writerow(["artist name", "track title", "playcount"])
             for item in data:
                 L = list(item)
-                L.insert(1, self.artist_name)
+                L.insert(0, self.artist_name)
                 writer.writerow(L)
 
 
@@ -199,7 +212,8 @@ if __name__ == "__main__":
         # usage="%(prog)s [options] <artist url> [options]",
         description="Fetches artist popular Spotify tracks",
         epilog="Enjoy the program! :)",
-        # allow_abbrev=False,
+        allow_abbrev=False,
+        fromfile_prefix_chars="@",
     )
 
     parser.add_argument(
@@ -208,7 +222,7 @@ if __name__ == "__main__":
         type=str,
         nargs="*",
         help=f"the artist url e.g., {boy}",
-        default=random.choice(URL),
+        default=[random.choice(URL)],
     )
     parser.add_argument(
         "-v",

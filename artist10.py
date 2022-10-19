@@ -2,6 +2,7 @@ import argparse
 import csv
 import random
 import time
+import os
 from typing import List, Tuple
 from datetime import datetime
 
@@ -12,7 +13,6 @@ from selenium.common.exceptions import (
     ElementClickInterceptedException,
     NoSuchElementException,
     TimeoutException,
-    WebDriverException,
 )
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.chrome.service import Service as ChromeService
@@ -221,11 +221,13 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-o",
-        "--outputfile",
-        help="Output file to save the data to. Default is the artist name in current directory",
+        "--outputdir",
+        default=os.getcwd(),
+        help="Output folder to save results (default is current working directory)",
     )
     args = parser.parse_args()
 
     if args.verbose:
+        print(args.outputdir)
         print(args.URLs)
-    ArtistPlayCount(cmdargs=args).fetch()
+    # ArtistPlayCount(cmdargs=args).fetch()
